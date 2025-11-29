@@ -20,9 +20,8 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 public class SendRewardEmbedCommand extends ListenerAdapter {
     private final FileConfiguration config;
@@ -34,7 +33,11 @@ public class SendRewardEmbedCommand extends ListenerAdapter {
     public SendRewardEmbedCommand(DiscordBot discordBot, FileConfiguration config, SyncStorage syncStorage) {
         this.discordBot = discordBot;
         this.config = KushStaffUtils.getInstance().syncingConfig;
-        this.syncStorage = new SyncStorage(KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.URL"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.USERNAME"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.PASSWORD"));
+        this.syncStorage = new SyncStorage(
+                KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.URL"),
+                KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.USERNAME"),
+                KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.PASSWORD")
+        );
     }
 
     private KushStaffUtils getPlugin() {
@@ -82,8 +85,9 @@ public class SendRewardEmbedCommand extends ListenerAdapter {
                 buttons.add(Button.primary(buttonKey, Objects.requireNonNull(label)));
             });
 
-            // Sending the message with buttons
-            channel.sendMessageEmbeds(embedBuilder.build()).setActionRow(buttons).queue();
+            channel.sendMessageEmbeds(embedBuilder.build())
+                    .setActionRow(buttons)
+                    .queue();
             event.reply("Reward embed with buttons sent to channel.").setEphemeral(true).queue();
         }
     }
@@ -107,60 +111,66 @@ public class SendRewardEmbedCommand extends ListenerAdapter {
             return;
         }
 
-        // Set the flag to true to mark that the interaction is being handled
+        // Mark interaction as being handled
         interactionHandled.put(interactionId, true);
 
-        // Use Bukkit's scheduler to handle the asynchronous code
+        // Async part: DB lookup / role check / permission / cooldown
         Bukkit.getScheduler().runTaskAsynchronously(getPlugin(), () -> {
             Bukkit.getLogger().info("Handling button interaction asynchronously...");
 
-            // Additional logic for SendRewardEmbedCommand buttons
             if (buttonId.startsWith("send_reward_")) {
                 String rewardType = buttonId.substring("send_reward_".length());
-                vEvent.reply("You clicked the button for reward type: " + rewardType).setEphemeral(true).queue();
-                // Add any specific behavior for each reward type here
+                vEvent.reply("You clicked the button for reward type: " + rewardType)
+                        .setEphemeral(true)
+                        .queue();
             } else {
                 String requiredRoleId = config.getString("BUTTONS." + buttonId + ".REQUIRED-ROLE-ID");
                 long interval = config.getLong("BUTTONS." + buttonId + ".REWARD-INTERVAL") * 1000;
 
-                if (canClaimReward(discordId, currentTime, interval) && hasRequiredRole(discordId, requiredRoleId)) {
+                if (canClaimReward(discordId, currentTime, interval) &&
+                        hasRequiredRole(discordId, requiredRoleId)) {
+
                     UUID minecraftUuid = syncStorage.getMinecraftUuid(discordId);
-                    // TODO fix this. (error 1.20, async command)
 
                     if (minecraftUuid != null) {
-                        giveReward(minecraftUuid, buttonId);
+                        // Schedule reward-giving on the main server thread
+                        Bukkit.getScheduler().runTask(getPlugin(), () -> giveReward(minecraftUuid, buttonId));
                         lastClaimedTimes.put(discordId, currentTime);
                         vEvent.reply("You have claimed your reward!").setEphemeral(true).queue();
                     } else {
                         vEvent.getChannel().sendMessage("You need to sync with Minecraft to claim the reward.").queue();
                     }
+
                 } else {
                     long lastClaimedTime = lastClaimedTimes.getOrDefault(discordId, 0L);
                     long timeUntilNextClaim = (lastClaimedTime + config.getLong("REWARD-INTERVAL") * 1000) - currentTime;
-                    vEvent.reply("You can claim your next reward in " + timeUntilNextClaim / 1000 + " seconds.")
-                            .setEphemeral(true).queue();
+                    vEvent.reply("You can claim your next reward in " + (timeUntilNextClaim / 1000) + " seconds.")
+                            .setEphemeral(true)
+                            .queue();
                     Bukkit.getLogger().info("Interaction handling complete.");
                 }
             }
 
-            // Reset the flag after a delay to allow for the next interaction
+            // Reset the interaction flag after a short delay (on main thread)
             Bukkit.getScheduler().runTaskLater(getPlugin(), () -> {
                 interactionHandled.put(interactionId, false);
                 Bukkit.getLogger().info("Interaction handling complete.");
-            }, 20L);  // Delayed reset to ensure there's no interference with the next interaction
+            }, 20L);  // 1 second delay (20 ticks)
+
         });
         vEvent.deferEdit().queue();
     }
 
     private boolean canClaimReward(long discordId, long currentTime, long interval) {
-        long lastClaimedTime = lastClaimedTimes.getOrDefault(discordId, 0L);
-        return currentTime - lastClaimedTime >= interval;
+        long last = lastClaimedTimes.getOrDefault(discordId, 0L);
+        return currentTime - last >= interval;
     }
 
     private boolean hasRequiredRole(long discordId, String requiredRoleId) {
         Guild guild = discordBot.getJda().getGuilds().get(0);
         Member member = guild.getMemberById(discordId);
-        return member != null && member.getRoles().stream().anyMatch(role -> role.getId().equals(requiredRoleId));
+        return member != null && member.getRoles().stream()
+                .anyMatch(role -> role.getId().equals(requiredRoleId));
     }
 
     private void giveReward(UUID minecraftUuid, String buttonId) {
@@ -173,8 +183,7 @@ public class SendRewardEmbedCommand extends ListenerAdapter {
                         String processedCommand = command.replace("%player%", player.getName());
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
                     } catch (Exception e) {
-                        // Log the error and continue with the next command
-                        System.err.println("Error executing command: " + command);
+                        getPlugin().getLogger().severe("Error executing command: " + command);
                         e.printStackTrace();
                     }
                 }
