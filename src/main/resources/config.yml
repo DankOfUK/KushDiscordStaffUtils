@@ -192,7 +192,7 @@ report:
 chatwebhook:
   enabled: true
   webhookUrl: "your-webhook-here"
-  username: "%player_name% - Chat Log"
+  username: "%group_name% %player_name% - Chat Log"
   message: "%time% __**[Global Chat]**__ `%player_name%`**:** *%message%*"
 
 #----------------------------------------------------------------

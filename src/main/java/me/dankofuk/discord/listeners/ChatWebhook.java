@@ -4,6 +4,7 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import me.dankofuk.KushStaffUtils;
 import me.dankofuk.discord.managers.UUIDFetcher;
 import me.dankofuk.utils.WebhookUtils;
+import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class ChatWebhook implements Listener {
     private KushStaffUtils main;
     public FileConfiguration config;
+    public Permission permission = main.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
 
     public ChatWebhook(FileConfiguration config) {
         this.config = config;
@@ -29,8 +31,11 @@ public class ChatWebhook implements Listener {
             return;
         }
 
-        String playerName = event.getPlayer().getName();
+        Player p = event.getPlayer();
+        String groupName = permission.getPrimaryGroup(p);
+        String playerName = p.getName();
         String message = event.getMessage();
+
 
         String webhookMessage = KushStaffUtils.getInstance().getConfig().getString("chatwebhook.message");
 
@@ -43,15 +48,16 @@ public class ChatWebhook implements Listener {
         long time = System.currentTimeMillis() / 1000L;
 
         webhookMessage = webhookMessage
+                .replace("%group_name%", groupName)
                 .replace("%player%", playerName)
                 .replace("%player_name%", playerName)
                 .replace("%message%", message)
                 .replace("%time%", "<t:" + time + ":R>");
 
-        sendWebhook(webhookMessage, playerName);
+        sendWebhook(webhookMessage, playerName, groupName);
     }
 
-    private void sendWebhook(String webhookMessage, String playerName) {
+    private void sendWebhook(String webhookMessage, String playerName, String groupName) {
         try {
             webhookMessage = ChatColor.stripColor(webhookMessage);
 
@@ -60,7 +66,7 @@ public class ChatWebhook implements Listener {
             webhook.setContent(webhookMessage);
 
             String username = KushStaffUtils.getInstance().getConfig().getString("chatwebhook.username");
-            webhook.setUsername(username.replace("%player%", playerName).replace("%player_name%", playerName));
+            webhook.setUsername(username.replace("%player%", playerName).replace("%player_name%", playerName).replace("%group_name%", groupName));
 
             String crafatarBaseUrl = "https://crafatar.com/avatars/";
             UUID playerUuid = UUIDFetcher.getUUID(playerName);
