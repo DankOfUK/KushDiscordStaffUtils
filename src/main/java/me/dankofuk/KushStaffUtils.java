@@ -385,7 +385,7 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
         HandlerList.unregisterAll((Listener) this);
         FileConfiguration config = getConfig();
         loadMessagesConfig();
-        // Discord Bot Stuff
+        /// Discord Bot Stuff
         if (KushStaffUtils.getInstance().getConfig().getBoolean("bot.enabled")) {
             discordBot.reloadBot();
         }
