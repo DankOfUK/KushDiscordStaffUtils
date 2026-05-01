@@ -13,8 +13,6 @@ import me.dankofuk.discord.commands.botRequiredCommands.SuggestionCommand;
 import me.dankofuk.discord.listeners.ChatWebhook;
 import me.dankofuk.discord.listeners.CommandLogger;
 import me.dankofuk.discord.listeners.StartStopLogger;
-import me.dankofuk.commands.SyncGameCommand;
-import me.dankofuk.discord.syncing.SyncStorage;
 import me.dankofuk.factions.FactionStrike;
 import me.dankofuk.factions.FactionsTopAnnouncer;
 import me.dankofuk.fkore.FKoreEnterPrinterLogger;
@@ -519,14 +517,6 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
             getLogger().warning("AdvancedBans Logging - [Enabled]");
         }
 
-        if (!syncingConfig.getBoolean("ena//////////////bled")) {
-            getLogger().warning("Discord 2 Game Syncing - [Not Enabled]");
-        } else {
-            syncStorage = new SyncStorage(syncingConfig.getString("MYSQL.URL"), syncingConfig.getString("MYSQL.USERNAME"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.PASSWORD"));
-            syncStorage.initDatabase();
-            Objects.requireNonNull(getCommand("sync")).setExecutor(new SyncGameCommand(discordBot, KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.URL"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.USERNAME"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.PASSWORD")));
-            getLogger().warning("Discord 2 Game Syncing - [Enabled]");
-        }
        //Plugin factionsKore = Bukkit.getPluginManager().getPlugin("FactionsKore");
        //if (factionsKore == null) {
        //    getLogger().warning("FactionsKore is not installed or enabled. This feature will not work!");
