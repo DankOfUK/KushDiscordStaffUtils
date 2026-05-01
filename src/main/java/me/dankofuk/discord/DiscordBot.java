@@ -5,8 +5,6 @@ import me.dankofuk.discord.commands.*;
 import me.dankofuk.discord.listeners.CommandLogger;
 import me.dankofuk.discord.listeners.DiscordChat2Game;
 import me.dankofuk.discord.listeners.StartStopLogger;
-import me.dankofuk.discord.syncing.SyncStorage;
-import me.dankofuk.discord.verify.SendVerifyPanel;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -33,14 +31,11 @@ public class DiscordBot extends ListenerAdapter {
     public Plugin botTask;
     public KushStaffUtils main;
     public FileConfiguration config;
-    public SendSyncPanel sendSyncPanel;
-    public SyncStorage syncStorage;
 
 
-    public DiscordBot(Plugin botTask, FileConfiguration config, SyncStorage syncStorage) {
+    public DiscordBot(Plugin botTask, FileConfiguration config) {
         this.botTask = botTask;
         this.config = config;
-        this.syncStorage = syncStorage;
     }
 
     public JDA getJda() {
@@ -75,11 +70,6 @@ public class DiscordBot extends ListenerAdapter {
 
         // Register Events/Listeners
         this.jda.addEventListener(new HelpCommand(this));
-        this.sendSyncPanel = new SendSyncPanel(this, syncStorage);
-        this.jda.addEventListener(sendSyncPanel);
-        //this.jda.addEventListener(new VoteCommand(this));
-        this.jda.addEventListener(new SendRewardEmbedCommand(this, config, syncStorage));
-        this.jda.addEventListener(new UnSyncCommand(this, syncStorage));
         this.jda.addEventListener(new OnlinePlayersCommand(this));
         this.jda.addEventListener(new StartStopLogger(this));
         this.jda.addEventListener(new ConsoleCommand(this));
@@ -89,7 +79,6 @@ public class DiscordBot extends ListenerAdapter {
         this.jda.addEventListener(new DiscordChat2Game(main, config));
         this.jda.addEventListener(new AvatarCommand());
         this.jda.addEventListener(new ServerInfoCommand());
-        this.jda.addEventListener(new SendVerifyPanel(this, main));
         this.jda.addEventListener(new FTopCommand(this));
         //this.jda.addEventListener(new TicketSystem(this));
     }
@@ -137,7 +126,6 @@ public class DiscordBot extends ListenerAdapter {
         commandsData.add(Commands.slash("createticketpanel", "Sends the ticket panel to current channel."));
         event.getJDA().updateCommands().addCommands(commandsData).queue();
     }
-
 
 
     public void stop() {
@@ -209,9 +197,5 @@ public class DiscordBot extends ListenerAdapter {
 
     public String getFactionTopCommandRoleID() {
         return KushStaffUtils.getInstance().discordBotConfig.getString("bot.factionTopCommandRoleID");
-    }
-
-    public SendSyncPanel getSendPanel() {
-        return sendSyncPanel;
     }
 }
