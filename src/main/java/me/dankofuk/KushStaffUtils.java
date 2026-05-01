@@ -88,7 +88,6 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
     public AKickListener aKickListener;
     public AMuteListener aMuteListener;
     // Syncing
-    public SyncStorage syncStorage;
     // FKore
     public FKoreLeavePrinterLogger printerLeaveLogger;
     public FKoreEnterPrinterLogger printerEnterLogger;
