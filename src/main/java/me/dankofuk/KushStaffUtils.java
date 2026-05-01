@@ -129,7 +129,6 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
                 getLogger().warning("[Discord Bot] No bot token found. Bot initialization skipped.");
                 return;
             }
-            this.discordBot = new DiscordBot(this, config, syncStorage);
             try {
                 this.discordBot.start();
                 getLogger().warning("[Discord Bot] Starting Discord Bot...");
