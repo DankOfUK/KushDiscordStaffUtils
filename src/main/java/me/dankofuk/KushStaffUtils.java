@@ -196,7 +196,7 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
         this.freezeCommand.setCannotBreakBlocks(getConfig().getString("freeze.cannotBreakBlocks"));
         this.freezeCommand.setDiscordServerMessage(getConfig().getString("freeze.discordServerMessage"));
         this.freezeCommand.setLogoutCommand(getConfig().getString("freeze.logOutCommand"));
-        getCommand("freeze").setExecutor(this.freezeCommand);
+        Objects.requireNonNull(getCommand("freeze")).setExecutor(this.freezeCommand);
         getServer().getPluginManager().registerEvents(this.freezeCommand, this);
         // Player Report Command (Webhook + Command)
         if (!config.getBoolean("bot.enabled")) {
@@ -306,15 +306,6 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
             getServer().getPluginManager().registerEvents(aBanListener, this);
             getLogger().warning("AdvancedBans Logging - [Enabled]");
         }
-
-        if (!syncingConfig.getBoolean("enabled")) {
-            getLogger().warning("Discord 2 Game Syncing - [Not Enabled]");
-        } else {
-            syncStorage = new SyncStorage(syncingConfig.getString("MYSQL.URL"), syncingConfig.getString("MYSQL.USERNAME"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.PASSWORD"));
-            syncStorage.initDatabase();
-            Objects.requireNonNull(getCommand("sync")).setExecutor(new SyncGameCommand(discordBot, KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.URL"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.USERNAME"), KushStaffUtils.getInstance().syncingConfig.getString("MYSQL.PASSWORD")));
-            getLogger().warning("Discord 2 Game Syncing - [Enabled]");
-        }
         //Plugin factionsKore = pluginManager.getPlugin("FactionsKore");
         //if (factionsKore == null) {
         //    getLogger().warning("FactionsKore is not installed or enabled. This feature will not work!");
@@ -355,11 +346,6 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
     public void onDisable() {
         FileConfiguration config = getConfig();
         boolean discordBotEnabled = config.getBoolean("bot.enabled");
-        if (!syncingConfig.getBoolean("enabled")) {
-            return;
-        } else {
-            syncStorage.closeConnection();
-        }
         if (discordBotEnabled) {
             this.discordBot.stop();
             getLogger().warning("[Discord Bot] Bot has been disabled!");
