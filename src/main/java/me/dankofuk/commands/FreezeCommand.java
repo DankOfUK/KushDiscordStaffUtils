@@ -81,11 +81,15 @@ public class FreezeCommand implements CommandExecutor, Listener {
         if (frozenPlayers.containsKey(target)) {
             // Player is already frozen, unfreeze them and remove them from the list of frozen players
             unfreezePlayer(target);
-            sender.sendMessage(String.format(me.dankofuk.utils.ColorUtils.translateColorCodes(unfreezeSuccessMessage), target.getName()));
+            // Use literal placeholder replacement: the config messages contain %player% (not %s),
+            // so String.format would throw UnknownFormatConversionException on the '%p'.
+            sender.sendMessage(me.dankofuk.utils.ColorUtils.translateColorCodes(
+                    unfreezeSuccessMessage.replace("%player%", target.getName())));
         } else {
             // Player is not frozen, freeze them
             freezePlayer(target);
-            sender.sendMessage(String.format(me.dankofuk.utils.ColorUtils.translateColorCodes(freezeSuccessMessage), target.getName()));
+            sender.sendMessage(me.dankofuk.utils.ColorUtils.translateColorCodes(
+                    freezeSuccessMessage.replace("%player%", target.getName())));
         }
         return true;
     }
@@ -98,8 +102,10 @@ public class FreezeCommand implements CommandExecutor, Listener {
         addEffect(player, me.dankofuk.utils.Compat.JUMP_BOOST, -10);
         // Open the frozen GUI
         openFrozenGUI(player);
-        // Send the freeze message to the player
-        player.sendMessage(me.dankofuk.utils.ColorUtils.translateColorCodes(String.valueOf(freezeMessages)));
+        // Send the freeze message to the player (one configured line at a time)
+        for (String line : freezeMessages) {
+            player.sendMessage(me.dankofuk.utils.ColorUtils.translateColorCodes(line));
+        }
         // Start task to check for movement and teleport player back
         BukkitTask task = new BukkitRunnable() {
             final Location previousLocation = player.getLocation();
