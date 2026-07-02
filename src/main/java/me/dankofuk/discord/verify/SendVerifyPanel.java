@@ -81,7 +81,15 @@ public class SendVerifyPanel extends ListenerAdapter {
         String buttonMessage = config.getString("verify_panel.buttonMessage", "Verify");
         String sentMessage = config.getString("verify_panel.sentMessage", "Verify panel sent!");
 
-        channel.sendMessage(embedMessage)
+        EmbedBuilder panel = new EmbedBuilder();
+        panel.setDescription(embedMessage);
+        panel.setColor(new Color(88, 101, 242)); // blurple
+        String thumb = config.getString("verify_panel.embedThumbnail");
+        if (thumb != null && thumb.startsWith("http")) { // ignore the "link-here" placeholder
+            panel.setThumbnail(thumb);
+        }
+
+        channel.sendMessageEmbeds(panel.build())
                 .setActionRow(Button.primary(VERIFY_BUTTON_ID, buttonMessage))
                 .queue();
         event.reply(sentMessage).setEphemeral(true).queue();

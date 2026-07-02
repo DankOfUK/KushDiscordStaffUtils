@@ -21,12 +21,8 @@ SYNC-PANEL:
   # Console commands run in-game when a player successfully syncs. %player% / %uuid% are replaced.
   COMMANDS-ON-SYNC:
     - "lp user %player% parent addtemp synced 30d"
-  # Sent (ephemeral) after /sendsyncpanel. %channel% is replaced with the channel mention.
-  SENT-MESSAGE-CONFIRM: "Sync Panel sent to %channel%"
 
   INVALID-CHANNEL-MESSAGE: "Invalid Channel!"
-  ROLE-GIVEN-MESSAGE: "Your roles have been given for syncing successfully!"
-  ROLE-NOT-FOUND-MESSAGE: "No roles have been found (tell your administrator)"
 
 # Messages
 MESSAGES:
@@ -56,16 +52,6 @@ REWARD-EMBED:
   THUMBNAIL-URL: "https://i.ytimg.com/vi/mm8UEsfVAUE/maxresdefault.jpg"
   COLOR: "#FFA500"
 
-SYNC-RANKS:
-  rank1:
-    ROLE-ID-GIVEN: "discord-role1"
-    LUCK-PERMS-RANK: "rank1"
-    BUTTON-ID: "button1"
-  rank2:
-    ROLE-ID-GIVEN: "discord-role2"
-    LUCK-PERMS-RANK: "rank2"
-    BUTTON-ID: "button2"
-
 BUTTONS:
   button1:
     REQUIRED-ROLE-ID: "961839666556960792"
@@ -91,8 +77,3 @@ BUTTONS:
       - "give %player% coal 10"
     REWARD-INTERVAL: 60
     MESSAGE: "Claim Coal"
-
-MYSQL:
-  URL: "jdbc:mysql:"
-  USERNAME: "username"
-  PASSWORD: "password"
