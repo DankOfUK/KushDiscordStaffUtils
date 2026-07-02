@@ -30,6 +30,7 @@ import me.dankofuk.loggers.players.JoinLeaveLogger;
 import me.dankofuk.utils.Metrics;
 import net.dv8tion.jda.api.JDA;
 import org.bukkit.Bukkit;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.HandlerList;
@@ -85,7 +86,11 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
     public AWarnListener aWarnListener;
     public AKickListener aKickListener;
     public AMuteListener aMuteListener;
-    // Syncing
+    // Syncing / Rewards
+    public me.dankofuk.sync.SyncStorage syncStorage;
+    public me.dankofuk.sync.SyncService syncService;
+    public me.dankofuk.sync.RewardService rewardService;
+    public org.bukkit.scheduler.BukkitTask rewardPanelTask;
     // FKore
     public FKoreLeavePrinterLogger printerLeaveLogger;
     public FKoreEnterPrinterLogger printerEnterLogger;
@@ -119,19 +124,39 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
 
         // bStats
         int pluginId = 18185;
-        me.dankofuk.utils.Metrics metrics = new Metrics(this, pluginId);
+        new Metrics(this, pluginId);
+
+        // Always instantiate the Discord bot wrapper so references elsewhere are never null,
+        // even when the bot itself is disabled or has no token.
+        this.discordBot = new DiscordBot(this, getConfig());
+        this.discordBot.main = this;
+
+        // Account sync + timed rewards (flat-file backed). Services are created before the bot
+        // starts so the JDA listener can reference them, and are gated by config at runtime.
+        this.syncStorage = new me.dankofuk.sync.SyncStorage(this);
+        this.syncService = new me.dankofuk.sync.SyncService(this, syncStorage, discordBot);
+        this.rewardService = new me.dankofuk.sync.RewardService(this, syncStorage);
+        org.bukkit.command.PluginCommand syncCommand = getCommand("sync");
+        if (syncCommand != null) {
+            syncCommand.setExecutor(new me.dankofuk.sync.SyncCommand());
+        } else {
+            getLogger().warning("Command 'sync' is not defined in plugin.yml; sync executor not bound.");
+        }
 
         // Features
         if (config.getBoolean("bot.enabled")) {
-            if ("false".equals(KushStaffUtils.getInstance().getConfig().getString("bot.discord_token")) || Objects.requireNonNull(KushStaffUtils.getInstance().getConfig().getString("bot.discord_token")).isEmpty()) {
+            String botToken = getConfig().getString("bot.discord_token");
+            if (botToken == null || botToken.isEmpty() || "false".equals(botToken)) {
+                // Skip only the bot; the rest of the plugin must still load.
                 getLogger().warning("[Discord Bot] No bot token found. Bot initialization skipped.");
-                return;
-            }
-            try {
-                this.discordBot.start();
-                getLogger().warning("[Discord Bot] Starting Discord Bot...");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            } else {
+                try {
+                    this.discordBot.start();
+                    getLogger().warning("[Discord Bot] Starting Discord Bot...");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    getLogger().warning("[Discord Bot] Interrupted while starting bot.");
+                }
             }
         } else {
             getLogger().warning("[Discord Bot] Bot is disabled. Skipping initialization...");
@@ -176,26 +201,7 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
             getLogger().warning("Factions Top Announcer - [Enabled]");
         }
         // Freeze Command
-        this.freezeCommand = new FreezeCommand(config, this);
-        this.freezeCommand.setFreezeMessages(getConfig().getStringList("freeze.freezeMessages"));
-        this.freezeCommand.setNoPermissionMessage(getConfig().getString("freeze.noPermissionMessage"));
-        this.freezeCommand.setPlayerNotFoundMessage(getConfig().getString("freeze.playerNotFoundMessage"));
-        this.freezeCommand.setCannotFreezeOpPlayerMessage(getConfig().getString("freeze.cannotFreezeOpPlayerMessage"));
-        this.freezeCommand.setCannotFreezeSelfMessage(getConfig().getString("freeze.cannotFreezeSelfMessage"));
-        this.freezeCommand.setFreezeSuccessMessage(getConfig().getString("freeze.freezeSuccessMessage"));
-        this.freezeCommand.setUnfreezeSuccessMessage(getConfig().getString("freeze.unfreezeSuccessMessage"));
-        this.freezeCommand.setFrozenGUITitle(getConfig().getString("freeze.frozenGUITitle"));
-        this.freezeCommand.setFrozenGUIBarrierName(getConfig().getString("freeze.frozenGUIBarrierName"));
-        this.freezeCommand.setFrozenGUILore(getConfig().getString("freeze.frozenGUILore"));
-        this.freezeCommand.setCannotUseEnderpearlsOrChorusFruit(getConfig().getString("freeze.cannotUseEnderpearlsOrChorusFruit"));
-        this.freezeCommand.setCannotChat(getConfig().getString("freeze.cannotChat"));
-        this.freezeCommand.setCannotUseCommands(getConfig().getString("freeze.cannotUseCommands"));
-        this.freezeCommand.setCannotPlaceBlocks(getConfig().getString("freeze.cannotPlaceBlocks"));
-        this.freezeCommand.setCannotBreakBlocks(getConfig().getString("freeze.cannotBreakBlocks"));
-        this.freezeCommand.setDiscordServerMessage(getConfig().getString("freeze.discordServerMessage"));
-        this.freezeCommand.setLogoutCommand(getConfig().getString("freeze.logOutCommand"));
-        Objects.requireNonNull(getCommand("freeze")).setExecutor(this.freezeCommand);
-        getServer().getPluginManager().registerEvents(this.freezeCommand, this);
+        setupFreezeCommand();
         // Player Report Command (Webhook + Command)
         if (!config.getBoolean("bot.enabled")) {
             getLogger().warning("Player Reporting Command - [Not Enabled] - (Requires Discord Bot enabled)");
@@ -283,8 +289,8 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
             getLogger().warning("LiteBans Logging - [Enabled]");
         }
 
-        // Advanced Logging (Webhooks)
-        Plugin advancedBans = pluginManager.getPlugin("AdvancedBans");
+        // Advanced Logging (Webhooks) - plugin is named "AdvancedBan" (no trailing s)
+        Plugin advancedBans = pluginManager.getPlugin("AdvancedBan");
         if (advancedBans == null) {
             getLogger().warning("AdvancedBans is not installed or enabled. This feature will not work!");
         } else if (!config.getBoolean("advancedbans.enabled")) {
@@ -337,36 +343,108 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
         //}
         this.staffUtilsCommand = new StaffUtilsCommand();
         Objects.requireNonNull(getCommand("stafflogger")).setExecutor(this.staffUtilsCommand);
-        new ThreadPoolExecutor(5, 10, 1L, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
+        startRewardPanelTask();
         Bukkit.getConsoleSender().sendMessage("[KushStaffUtils] Plugin has been enabled");
+    }
+
+    /**
+     * (Re)starts the recurring task that auto-posts the reward panel to Discord. Controlled by
+     * REWARD-PANEL.AUTO-POST / CHANNEL-ID / POST-INTERVAL in syncing.yml. No-op if the bot is
+     * disabled or auto-posting is off.
+     */
+    public void startRewardPanelTask() {
+        if (rewardPanelTask != null) {
+            rewardPanelTask.cancel();
+            rewardPanelTask = null;
+        }
+        if (!getConfig().getBoolean("bot.enabled") || rewardService == null) {
+            return;
+        }
+        if (!syncingConfig.getBoolean("REWARD-PANEL.AUTO-POST", false)) {
+            return;
+        }
+        long minutes = syncingConfig.getLong("REWARD-PANEL.POST-INTERVAL", 30L);
+        if (minutes <= 0) {
+            minutes = 30L;
+        }
+        final String channelId = syncingConfig.getString("REWARD-PANEL.CHANNEL-ID");
+        long ticks = minutes * 60L * 20L;
+        rewardPanelTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            if (discordBot == null || discordBot.getJda() == null
+                    || channelId == null || channelId.isEmpty()) {
+                return;
+            }
+            net.dv8tion.jda.api.entities.channel.concrete.TextChannel channel =
+                    discordBot.getJda().getTextChannelById(channelId);
+            if (channel != null) {
+                rewardService.postPanel(channel);
+            }
+        }, ticks, ticks);
     }
 
     public void onDisable() {
         FileConfiguration config = getConfig();
+        if (rewardPanelTask != null) {
+            rewardPanelTask.cancel();
+            rewardPanelTask = null;
+        }
         boolean discordBotEnabled = config.getBoolean("bot.enabled");
-        if (discordBotEnabled) {
+        if (discordBotEnabled && this.discordBot != null) {
             this.discordBot.stop();
             getLogger().warning("[Discord Bot] Bot has been disabled!");
         } else {
             getLogger().warning("[Discord Bot] Bot is disabled, won't stop.");
         }
-        boolean factionsTopAnnouncer = config.getBoolean("announcer.enabled");
-        if (factionsTopAnnouncer) {
+        if (config.getBoolean("announcer.enabled") && this.factionsTopAnnouncer != null) {
             this.factionsTopAnnouncer.cancelAnnouncements();
         }
-        boolean stopLogger = config.getBoolean("serverstatus.enabled");
-        if (stopLogger) {
-                startStopLogger.sendStatusUpdateMessage(false);
-            }
+        if (config.getBoolean("serverstatus.enabled") && this.startStopLogger != null) {
+            startStopLogger.sendStatusUpdateMessage(false);
+        }
         Bukkit.getConsoleSender().sendMessage("[KushStaffUtils] Plugin has been disabled!");
     }
 
 
+    // Creates/refreshes the freeze command and registers its listener. Shared by enable and
+    // reload so freeze messages update on reload and the listener is (re)registered exactly once.
+    private void setupFreezeCommand() {
+        this.freezeCommand = new FreezeCommand(getConfig(), this);
+        this.freezeCommand.setFreezeMessages(getConfig().getStringList("freeze.freezeMessages"));
+        this.freezeCommand.setNoPermissionMessage(getConfig().getString("freeze.noPermissionMessage"));
+        this.freezeCommand.setPlayerNotFoundMessage(getConfig().getString("freeze.playerNotFoundMessage"));
+        this.freezeCommand.setCannotFreezeOpPlayerMessage(getConfig().getString("freeze.cannotFreezeOpPlayerMessage"));
+        this.freezeCommand.setCannotFreezeSelfMessage(getConfig().getString("freeze.cannotFreezeSelfMessage"));
+        this.freezeCommand.setFreezeSuccessMessage(getConfig().getString("freeze.freezeSuccessMessage"));
+        this.freezeCommand.setUnfreezeSuccessMessage(getConfig().getString("freeze.unfreezeSuccessMessage"));
+        this.freezeCommand.setFrozenGUITitle(getConfig().getString("freeze.frozenGUITitle"));
+        this.freezeCommand.setFrozenGUIBarrierName(getConfig().getString("freeze.frozenGUIBarrierName"));
+        this.freezeCommand.setFrozenGUILore(getConfig().getString("freeze.frozenGUILore"));
+        this.freezeCommand.setCannotUseEnderpearlsOrChorusFruit(getConfig().getString("freeze.cannotUseEnderpearlsOrChorusFruit"));
+        this.freezeCommand.setCannotChat(getConfig().getString("freeze.cannotChat"));
+        this.freezeCommand.setCannotUseCommands(getConfig().getString("freeze.cannotUseCommands"));
+        this.freezeCommand.setCannotPlaceBlocks(getConfig().getString("freeze.cannotPlaceBlocks"));
+        this.freezeCommand.setCannotBreakBlocks(getConfig().getString("freeze.cannotBreakBlocks"));
+        this.freezeCommand.setDiscordServerMessage(getConfig().getString("freeze.discordServerMessage"));
+        this.freezeCommand.setLogoutCommand(getConfig().getString("freeze.logOutCommand"));
+        // Guard against the command not being present in plugin.yml so a missing entry can never
+        // abort plugin enable; the listener is still registered so freeze mechanics keep working.
+        PluginCommand freezeCmd = getCommand("freeze");
+        if (freezeCmd != null) {
+            freezeCmd.setExecutor(this.freezeCommand);
+        } else {
+            getLogger().warning("Command 'freeze' is not defined in plugin.yml; freeze executor not bound.");
+        }
+        getServer().getPluginManager().registerEvents(this.freezeCommand, this);
+    }
+
     public void reloadConfigOptions() {
         reloadConfig();
-        HandlerList.unregisterAll((Listener) this);
+        // Unregister every Bukkit listener this plugin registered, so the feature blocks below
+        // re-register exactly one instance each instead of stacking duplicates on every reload.
+        HandlerList.unregisterAll((org.bukkit.plugin.Plugin) this);
         FileConfiguration config = getConfig();
         loadMessagesConfig();
+        setupFreezeCommand();
         // Discord Bot Stuff
         if (KushStaffUtils.getInstance().getConfig().getBoolean("bot.enabled")) {
             discordBot.reloadBot();
@@ -477,26 +555,13 @@ public class KushStaffUtils extends JavaPlugin implements Listener {
             getLogger().warning("Creative Logging - [Enabled]");
         }
 
-        // LiteBans Logging (Webhooks)
-        Plugin liteBans = Bukkit.getPluginManager().getPlugin("LiteBans");
-        if (liteBans == null) {
-            getLogger().warning("LiteBans is not installed or enabled. This feature will not work!");
-        } else if (!config.getBoolean("litebans.enabled")) {
-            getLogger().warning("LiteBans Logging - [Not Enabled]");
-        } else {
-            this.lbKickListener = new LBKickListener(this);
-            lbKickListener.registerEvents();
-            this.lbWarnListener = new LBWarnListener(this);
-            lbWarnListener.registerEvents();
-            this.lbMuteListener = new LBMuteListener(this);
-            lbMuteListener.registerEvents();
-            this.bansListener = new LBBanListener(this);
-            bansListener.registerEvents();
-            getLogger().warning("LiteBans Logging - [Enabled]");
-        }
+        // LiteBans Logging is intentionally NOT re-registered on reload: LiteBans listeners use
+        // their own event bus (Events.get().register) and cannot be unregistered, so re-registering
+        // would duplicate every webhook. They are registered once in onEnable(); their handlers read
+        // config values at event time, so reloaded settings take effect without re-registration.
 
-        // Advanced Logging (Webhooks)
-        Plugin advancedBans = Bukkit.getPluginManager().getPlugin("AdvancedBans");
+        // Advanced Logging (Webhooks) - plugin is named "AdvancedBan" (no trailing s)
+        Plugin advancedBans = Bukkit.getPluginManager().getPlugin("AdvancedBan");
         if (advancedBans == null) {
             getLogger().warning("AdvancedBans is not installed or enabled. This feature will not work!");
         } else if (!config.getBoolean("advancedbans.enabled")) {

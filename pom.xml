@@ -29,7 +29,6 @@
                 <version>3.4.1</version>
                 <configuration>
                     <createDependencyReducedPom>true</createDependencyReducedPom>
-                    <outputDirectory>C:\Users\reed1\Downloads\Java Coding\Java Coding\Projects\KushStaffUtils-v2\target</outputDirectory>
                 </configuration>
                 <executions>
                     <execution>
