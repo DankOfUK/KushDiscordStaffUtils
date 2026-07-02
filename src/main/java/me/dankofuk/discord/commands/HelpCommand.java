@@ -25,16 +25,16 @@ public class HelpCommand extends ListenerAdapter {
                 helpEmbed.setDescription("Command List");
 
                 helpEmbed.addField("/help", "Shows this menu", false);
-                helpEmbed.addField("/command [command]", "Sends a command to the server!", true);
-                helpEmbed.addField("/online", "Shows the players online", false);
-                helpEmbed.addField("/sendverifypanel [channel]", "Sends the verify panel the selected channel.", true);
-                helpEmbed.addField("/logs [user]", "Shows the log file for the user selected", true);
+                helpEmbed.addField("/online", "Shows the players online", true);
+                helpEmbed.addField("/serverinfo", "Shows information about this server", true);
+                helpEmbed.addField("/ftop", "Posts the FTop data", true);
+                helpEmbed.addField("/command [command]", "Runs a console command on the server (admin)", true);
+                helpEmbed.addField("/logs [user]", "Shows the log file for the user selected (admin)", true);
                 helpEmbed.addField("/avatar [user]", "Shows the avatar for the user selected", true);
-                helpEmbed.addField("/unsync [user]", "Starts the syncing process!", true);
-                helpEmbed.addField("/sendsyncpanel [channel]", "Sends the sync panel the selected channel.", true);
-                helpEmbed.addField("/createticketpanel", "Sends the ticket panel the current channel.", true);
-                helpEmbed.addField("/sendrewardpanel [channel]", "Sends the reward panel the selected channel.", true);
-                helpEmbed.addField("/reload", "Reloads the configs for the bot related stuff.", false);
+                helpEmbed.addField("/sendverifypanel [channel]", "Sends the verify panel to a channel (admin)", true);
+                helpEmbed.addField("/sendsyncpanel [channel]", "Sends the account-sync panel to a channel (admin)", true);
+                helpEmbed.addField("/sendrewardpanel [channel]", "Sends the reward panel to a channel (admin)", true);
+                helpEmbed.addField("/unsync [user]", "Removes a user's account link (admin)", true);
 
                 helpEmbed.setFooter("Help Page 1/1 - Made by Exotic Development");
                 event.replyEmbeds(helpEmbed.build()).setEphemeral(true).queue();

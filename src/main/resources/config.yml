@@ -450,14 +450,3 @@ advancedbans:
     embedFooter: "%time%"
     embedThumbnail: "https://cdn.discordapp.com/avatars/1093413225338507344/a60fa5f0a630cafb471effcf3a3e1bd8.png?size=4096"
     embedAvatar: "https://cdn.discordapp.com/avatars/1093413225338507344/a60fa5f0a630cafb471effcf3a3e1bd8.png?size=4096"
-
-#----------------------------------------------------------------
-# Ticket System Configuration - Discord Required
-#----------------------------------------------------------------
-# Placeholders for Ticket Systen
-#
-
-TICKET_CHANNELS:
-  SUPPORT: "channel_id_for_support"
-  REPORT: "channel_id_for_report"
-  FEEDBACK: "channel_id_for_feedback"

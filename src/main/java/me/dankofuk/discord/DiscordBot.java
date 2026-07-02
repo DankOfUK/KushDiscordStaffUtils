@@ -80,6 +80,7 @@ public class DiscordBot extends ListenerAdapter {
         this.jda.addEventListener(new AvatarCommand());
         this.jda.addEventListener(new ServerInfoCommand());
         this.jda.addEventListener(new FTopCommand(this));
+        this.jda.addEventListener(new me.dankofuk.discord.verify.SendVerifyPanel(this, KushStaffUtils.getInstance()));
         this.jda.addEventListener(new me.dankofuk.sync.SyncRewardListener(this));
         //this.jda.addEventListener(new TicketSystem(this));
     }
@@ -103,6 +104,7 @@ public class DiscordBot extends ListenerAdapter {
         commandsData.add(Commands.slash("command", "Sends the command to the server.").addOption(OptionType.STRING, "command", "The command you want to send."));
         commandsData.add(Commands.slash("logs", "Gets the logs for the user you enter.").addOption(OptionType.STRING, "user", "The user you would like the logs for."));
         commandsData.add(Commands.slash("avatar", "Gets the avatar of a user.").addOption(OptionType.USER, "user", "The user that the avatar for."));
+        commandsData.add(Commands.slash("sendverifypanel", "Sends the verify panel to the channel you select").addOption(OptionType.CHANNEL, "channel", "The channel to send the panel to."));
         commandsData.add(Commands.slash("sendsyncpanel", "Sends the sync panel to the channel you select").addOption(OptionType.CHANNEL, "channel", "The channel to send the panel to."));
         commandsData.add(Commands.slash("sendrewardpanel", "Sends the reward panel to the channel you select").addOption(OptionType.CHANNEL, "channel", "The channel to send the panel to."));
         commandsData.add(Commands.slash("unsync", "Unsync a user that has been synced").addOption(OptionType.USER, "user", "User you want to unsync"));
@@ -111,11 +113,17 @@ public class DiscordBot extends ListenerAdapter {
 
     public void onGuildReady(@NotNull GuildReadyEvent event) {
         // Guild-scoped registration: available immediately in this guild.
-        event.getGuild().updateCommands().addCommands(buildCommands()).queue(
-                success -> KushStaffUtils.getInstance().getLogger()
-                        .info("[Discord Bot] Registered " + success.size() + " slash commands in guild " + event.getGuild().getName()),
-                error -> KushStaffUtils.getInstance().getLogger()
-                        .warning("[Discord Bot] Failed to register slash commands: " + error.getMessage()));
+        List<CommandData> commands = buildCommands();
+        event.getGuild().updateCommands().addCommands(commands).queue(
+                success -> KushStaffUtils.getInstance().getLogger().info(
+                        "[Discord Bot] Registered " + success.size() + " slash commands in guild "
+                                + event.getGuild().getName() + ": "
+                                + success.stream().map(net.dv8tion.jda.api.interactions.commands.Command::getName)
+                                        .collect(java.util.stream.Collectors.joining(", "))),
+                error -> KushStaffUtils.getInstance().getLogger().warning(
+                        "[Discord Bot] Failed to register slash commands in "
+                                + event.getGuild().getName() + " (is the bot invited with the "
+                                + "applications.commands scope?): " + error.getMessage()));
     }
 
     public void onReady(@NotNull ReadyEvent event) {
