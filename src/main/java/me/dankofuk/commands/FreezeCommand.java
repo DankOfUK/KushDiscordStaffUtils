@@ -61,6 +61,10 @@ public class FreezeCommand implements CommandExecutor, Listener {
             sender.sendMessage(me.dankofuk.utils.ColorUtils.translateColorCodes(noPermissionMessage));
             return true;
         }
+        if (args.length < 1) {
+            sender.sendMessage(me.dankofuk.utils.ColorUtils.translateColorCodes("&cUsage: /freeze <player>"));
+            return true;
+        }
         Player target = Bukkit.getPlayer(args[0]);
         if (target == null) {
             sender.sendMessage(me.dankofuk.utils.ColorUtils.translateColorCodes(playerNotFoundMessage));
@@ -88,10 +92,10 @@ public class FreezeCommand implements CommandExecutor, Listener {
     private void freezePlayer(Player player) {
         // Save player location to teleport them back later
         frozenPlayers.put(player, player.getLocation());
-        // Add blindness, freeze and jump boost effects
-        player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, Integer.MAX_VALUE, 0, false, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, Integer.MAX_VALUE, 255, false, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP, Integer.MAX_VALUE, -10, false, false));
+        // Add blindness, freeze and jump boost effects (resolved by name for cross-version support)
+        addEffect(player, me.dankofuk.utils.Compat.BLINDNESS, 0);
+        addEffect(player, me.dankofuk.utils.Compat.SLOWNESS, 255);
+        addEffect(player, me.dankofuk.utils.Compat.JUMP_BOOST, -10);
         // Open the frozen GUI
         openFrozenGUI(player);
         // Send the freeze message to the player
@@ -127,12 +131,24 @@ public class FreezeCommand implements CommandExecutor, Listener {
             player.teleport(previousLocation);
         }
         // Remove blindness and freeze effects
-        player.removePotionEffect(PotionEffectType.BLINDNESS);
-        player.removePotionEffect(PotionEffectType.SLOW);
-        player.removePotionEffect(PotionEffectType.JUMP);
+        removeEffect(player, me.dankofuk.utils.Compat.BLINDNESS);
+        removeEffect(player, me.dankofuk.utils.Compat.SLOWNESS);
+        removeEffect(player, me.dankofuk.utils.Compat.JUMP_BOOST);
         // Remove player from list of frozen players
         frozenPlayers.remove(player);
     }
+    private void addEffect(Player player, PotionEffectType type, int amplifier) {
+        if (type != null) {
+            player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, amplifier, false, false));
+        }
+    }
+
+    private void removeEffect(Player player, PotionEffectType type) {
+        if (type != null) {
+            player.removePotionEffect(type);
+        }
+    }
+
     private void openFrozenGUI(Player player) {
         if (frozenPlayers.containsKey(player) && config != null && !player.getOpenInventory().getTitle().equals(me.dankofuk.utils.ColorUtils.translateColorCodes(frozenGUITitle))) {
             Inventory gui = Bukkit.createInventory(player, 9, me.dankofuk.utils.ColorUtils.translateColorCodes(frozenGUITitle));
@@ -177,7 +193,7 @@ public class FreezeCommand implements CommandExecutor, Listener {
                 player.teleport(frozenPlayers.get(player));
             } else if (from.getBlockY() != to.getBlockY()) {
                 // Player moved vertically, cancel the effect that caused the movement
-                player.removePotionEffect(PotionEffectType.JUMP);
+                removeEffect(player, me.dankofuk.utils.Compat.JUMP_BOOST);
             }
         }
     }

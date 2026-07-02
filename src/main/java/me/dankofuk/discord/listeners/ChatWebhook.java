@@ -12,17 +12,22 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.util.Objects;
 import java.util.UUID;
 
 public class ChatWebhook implements Listener {
-    private KushStaffUtils main;
     public FileConfiguration config;
-    public Permission permission = main.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
+    public Permission permission;
 
     public ChatWebhook(FileConfiguration config) {
         this.config = config;
+        // Vault may be absent; resolve the permission provider defensively instead of in a
+        // field initializer (the previous code dereferenced a null field and crashed on load).
+        RegisteredServiceProvider<Permission> rsp =
+                Bukkit.getServicesManager().getRegistration(Permission.class);
+        this.permission = rsp != null ? rsp.getProvider() : null;
     }
 
     @EventHandler
@@ -32,7 +37,7 @@ public class ChatWebhook implements Listener {
         }
 
         Player p = event.getPlayer();
-        String groupName = permission.getPrimaryGroup(p);
+        String groupName = resolveGroup(p);
         String playerName = p.getName();
         String message = event.getMessage();
 
@@ -55,6 +60,24 @@ public class ChatWebhook implements Listener {
                 .replace("%time%", "<t:" + time + ":R>");
 
         sendWebhook(webhookMessage, playerName, groupName);
+    }
+
+    /**
+     * Resolves the player's primary group, tolerating permission backends that don't support
+     * groups. Vault's SuperPerms fallback (used when no LuckPerms/GroupManager is installed)
+     * throws UnsupportedOperationException from getPrimaryGroup(), so we swallow it and any other
+     * provider error and fall back to an empty group name rather than breaking the chat event.
+     */
+    private String resolveGroup(Player player) {
+        if (permission == null) {
+            return "";
+        }
+        try {
+            String group = permission.getPrimaryGroup(player);
+            return group != null ? group : "";
+        } catch (Throwable t) {
+            return "";
+        }
     }
 
     private void sendWebhook(String webhookMessage, String playerName, String groupName) {

@@ -14,24 +14,32 @@ public class StringUtils {
     private static final Pattern PATTERN = Pattern.compile("#[a-zA-Z0-9]{6}");
 
     public static String replace(String input, String... replacements) {
+        if (input == null) {
+            return null;
+        }
         if (replacements.length % 2 != 0) {
             throw new IllegalArgumentException("replacements must be even");
         }
 
+        // Literal replacement: the search tokens are plain placeholders (e.g. %player%) and the
+        // values can contain regex-special characters like $ or \, which would break replaceAll.
         for (int i = 0; i < replacements.length; i += 2) {
-            input = input.replaceAll(replacements[i], replacements[i + 1]);
+            input = input.replace(replacements[i], replacements[i + 1]);
         }
 
         return input;
     }
 
     public static String replace(String input, Object... replacements) {
+        if (input == null) {
+            return null;
+        }
         if (replacements.length % 2 != 0) {
             throw new IllegalArgumentException("replacements must be even");
         }
 
         for (int i = 0; i < replacements.length; i += 2) {
-            input = input.replaceAll(replacements[i].toString(), replacements[i + 1].toString());
+            input = input.replace(replacements[i].toString(), replacements[i + 1].toString());
         }
 
         return input;
@@ -52,6 +60,9 @@ public class StringUtils {
     }
 
     public static String colorize(String input) {
+        if (input == null) {
+            return null;
+        }
         Matcher matcher = HEX_PATTERN.matcher(input);
 
         while (matcher.find()) {

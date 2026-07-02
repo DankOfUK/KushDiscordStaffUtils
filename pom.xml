@@ -29,7 +29,6 @@
                 <version>3.4.1</version>
                 <configuration>
                     <createDependencyReducedPom>true</createDependencyReducedPom>
-                    <outputDirectory>C:\Users\reed1\Downloads\Java Coding\Java Coding\Projects\KushStaffUtils-v2\target</outputDirectory>
                 </configuration>
                 <executions>
                     <execution>
@@ -48,6 +47,20 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>1.9.10</version>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <resources>
@@ -120,12 +133,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.luckperms</groupId>
-            <artifactId>api</artifactId>
-            <version>5.4</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.DevLeoko</groupId>
             <artifactId>AdvancedBan</artifactId>
             <version>v2.3.0</version>
@@ -136,27 +143,15 @@
             <artifactId>FactionsKore</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/FactionsKore-1.3.64.1.jar</systemPath>
+            <systemPath>${project.basedir}/FactionsKore-1.4.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.golfing8.kore</groupId>
             <artifactId>FactionsKoreFTop</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/factionskore-ftop-1.0.jar</systemPath>
+            <systemPath>${project.basedir}/factionskore-ftop-0.4-SNAPSHOT (1).jar</systemPath>
         </dependency>
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.33</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib</artifactId>
-            <version>1.9.10</version> <!-- Use the version compatible with your setup -->
-        </dependency>
-
     </dependencies>
 
     <profiles>

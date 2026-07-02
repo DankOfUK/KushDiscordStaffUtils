@@ -29,7 +29,11 @@ public class DiscordChat2Game extends ListenerAdapter {
             return;
         if (!event.getAuthor().isBot()) {
             String messageContent = event.getMessage().getContentDisplay();
-            String formattedMessage = config.getString("discord2game.message").replace("%author%", event.getAuthor().getName()).replace("%message%", messageContent);
+            String template = config.getString("discord2game.message");
+            if (template == null) {
+                return;
+            }
+            String formattedMessage = template.replace("%author%", event.getAuthor().getName()).replace("%message%", messageContent);
             formattedMessage = ChatColor.translateAlternateColorCodes('&', formattedMessage);
             if (config.getBoolean("discord2game.roleIdRequired") && (config.getString("discord2game.roleId") == null || config.getString("discord2game.roleId").isEmpty() || !userHasRequiredRole(event))) {
                 sendNoPermissionEmbed(event);
@@ -41,7 +45,10 @@ public class DiscordChat2Game extends ListenerAdapter {
     }
 
     private boolean userHasRequiredRole(MessageReceivedEvent event) {
-        String userId = event.getAuthor().getId();
+        // getMember() is null for webhook/system messages and outside a guild context.
+        if (event.getMember() == null) {
+            return false;
+        }
         String roleId = config.getString("discord2game.roleId");
         return event.getMember().getRoles().stream()
                 .anyMatch(role -> role.getId().equals(roleId));

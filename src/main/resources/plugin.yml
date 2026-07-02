@@ -3,8 +3,8 @@ version: '${project.version}'
 main: me.dankofuk.KushStaffUtils
 author: DankOfUK
 description: Made by Exotic Development
-load-after: [InteractiveChat, AntiCheatReplay, LiteBans, AdvancedBans]
-softdepend: [PlaceholderAPI, Vault, AntiCheatReplay, LiteBans, AdvancedBans]
+load-after: [InteractiveChat, AntiCheatReplay, LiteBans, AdvancedBan]
+softdepend: [PlaceholderAPI, Vault, AntiCheatReplay, LiteBans, AdvancedBan]
 commands:
   stafflogger:
     description: reloads the config.
@@ -12,6 +12,9 @@ commands:
   viewlogs:
     description: views a players command logs ingame
     usage: /viewlogs <player_name> - Views a players command logs
+  freeze:
+    description: Freezes or unfreezes a player
+    usage: /freeze <player>
   report:
     description: reports a player ingame
   bug:

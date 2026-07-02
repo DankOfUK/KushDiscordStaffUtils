@@ -16,6 +16,13 @@ SYNC-PANEL:
   THUMBNAIL-URL: "https://i.ytimg.com/vi/mm8UEsfVAUE/maxresdefault.jpg"
   # Message on the button
   BUTTON-MESSAGE: "Click here!"
+  # How long (minutes) a generated sync code stays valid.
+  CODE-EXPIRY-MINUTES: 5
+  # Console commands run in-game when a player successfully syncs. %player% / %uuid% are replaced.
+  COMMANDS-ON-SYNC:
+    - "lp user %player% parent addtemp synced 30d"
+  # Sent (ephemeral) after /sendsyncpanel. %channel% is replaced with the channel mention.
+  SENT-MESSAGE-CONFIRM: "Sync Panel sent to %channel%"
 
   INVALID-CHANNEL-MESSAGE: "Invalid Channel!"
   ROLE-GIVEN-MESSAGE: "Your roles have been given for syncing successfully!"
@@ -31,6 +38,15 @@ MESSAGES:
 
   # Discord Messages
 
+
+# Auto-posting of the reward panel to Discord. You can also post on demand with /sendrewardpanel.
+REWARD-PANEL:
+  # Channel the reward panel is auto-posted to.
+  CHANNEL-ID: "reward-channel-id"
+  # Post a fresh reward panel every this many minutes.
+  POST-INTERVAL: 30
+  # Set to true to enable the recurring auto-post.
+  AUTO-POST: false
 
 REWARD-EMBED:
   TITLE: "Your Reward Title"
